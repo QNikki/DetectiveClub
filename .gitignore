@@ -1,0 +1,11 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+.idea/.idea.DetectiveClub/.idea/encodings.xml
+.idea/.idea.DetectiveClub/.idea/indexLayout.xml
+.idea/.idea.DetectiveClub/.idea/projectSettingsUpdater.xml
+.idea/.idea.DetectiveClub/.idea/vcs.xml
+.idea/.idea.DetectiveClub/.idea/workspace.xml
+/.idea
