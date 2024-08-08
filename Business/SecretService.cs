@@ -3,8 +3,10 @@ using Environment = DetectiveClub.Data.Environment;
 
 namespace DetectiveClub.Business;
 
-internal class SecretService(IRepository<SecretType> secretTypes, IRepository<Secret> secrets, 
-    IRepository<Environment> environments): ISecretService
+internal class SecretService(
+    IRepository<SecretType> secretTypes,
+    IRepository<Secret> secrets,
+    IRepository<Environment> environments) : ISecretService
 {
     public StatusResult<ServiceStatus, int> AddSecret(Secret newSecret)
     {
@@ -57,19 +59,40 @@ internal class SecretService(IRepository<SecretType> secretTypes, IRepository<Se
         return ServiceStatus.Success;
     }
 
-    public Secret? GetSecret(int secretId) => secrets.GetById(secretId);
-
-    public IEnumerable<Secret> GetSecretsByEnvironment(int environmentId) =>
-        secrets.GetList(secret => secret.EnvironmentId == environmentId);
+    public StatusResult<ServiceStatus, Secret> GetSecret(int secretId)
+    {
+        var secret = secrets.GetById(secretId);
+        var status = secret is null ? ServiceStatus.NotFound : ServiceStatus.Success;
+        return new(status, secret);
+    }
     
-    public IEnumerable<Secret> GetSecretsByType(int typeId) =>
-        secrets.GetList(secret => secret.TypeId == typeId);
+    public StatusResult<ServiceStatus, IEnumerable<Secret>> GetSecretsByEnvironment(int environmentId)
+    {
+        if (!IsEnvironmentValid(environmentId))
+        {
+            return new StatusResult<ServiceStatus, IEnumerable<Secret>>(ServiceStatus.WrongEnvironment, default);
+        }
+        
+        return new StatusResult<ServiceStatus, IEnumerable<Secret>>(ServiceStatus.Success,
+            secrets.GetList(secret => secret.EnvironmentId == environmentId));
+    }
+
+    public StatusResult<ServiceStatus, IEnumerable<Secret>> GetSecretsByType(int typeId)
+    {
+        if (!IsTypeValid(typeId))
+        {
+            return new StatusResult<ServiceStatus, IEnumerable<Secret>>(ServiceStatus.WrongEnvironment, default);
+        }
+
+        return new StatusResult<ServiceStatus, IEnumerable<Secret>>(ServiceStatus.Success,
+            secrets.GetList(secret => secret.TypeId == typeId));
+    }
 
     public StatusResult<ServiceStatus, int> AddSecretType(SecretType newSecretType)
     {
         var alreadyExist = secretTypes.GetAll()
             .Any(secretType => secretType.Name == newSecretType.Name);
-        
+
         if (alreadyExist)
         {
             return new StatusResult<ServiceStatus, int>(ServiceStatus.AlreadyExist, -1);
@@ -78,7 +101,7 @@ internal class SecretService(IRepository<SecretType> secretTypes, IRepository<Se
         var secretId = secretTypes.Add(newSecretType);
         return new StatusResult<ServiceStatus, int>(ServiceStatus.Success, secretId);
     }
-    
+
     public ServiceStatus RemoveSecretType(int secretTypeId)
     {
         var secretType = secretTypes.GetById(secretTypeId);
@@ -87,15 +110,16 @@ internal class SecretService(IRepository<SecretType> secretTypes, IRepository<Se
             return ServiceStatus.NotFound;
         }
 
-        if (secrets.GetAll().Any(secret => secret.TypeId == secretTypeId))
+        var secretsByType = GetSecretsByType(secretTypeId).Result.ToList();
+        foreach (var secret in secretsByType)
         {
-            return ServiceStatus.StillInUse;
+            secrets.Delete(secret);
         }
 
         secretTypes.Delete(secretType);
         return ServiceStatus.Success;
     }
-    
+
     public ServiceStatus EditSecretType(SecretType toEditSecretType)
     {
         var secretType = secretTypes.GetById(toEditSecretType.Id);
@@ -103,12 +127,17 @@ internal class SecretService(IRepository<SecretType> secretTypes, IRepository<Se
         {
             return ServiceStatus.NotFound;
         }
-        
+
         secretTypes.Edit(toEditSecretType);
         return ServiceStatus.Success;
     }
-    
-    public SecretType? GetSecretType(int secretId) => secretTypes.GetById(secretId);
+
+    public StatusResult<ServiceStatus, SecretType> GetSecretType(int secretId)
+    {
+        var secretType = secretTypes.GetById(secretId);
+        var status = secretType is null ? ServiceStatus.NotFound : ServiceStatus.Success;
+        return new(status, secretType);
+    }
 
     public IEnumerable<SecretType> GetSecretTypes() => secretTypes.GetAll();
 
@@ -130,7 +159,7 @@ internal class SecretService(IRepository<SecretType> secretTypes, IRepository<Se
 
         return new StatusResult<bool, ServiceStatus>(status, result);
     }
-    
+
 
     private bool IsEnvironmentValid(int environmentId) => environments.GetById(environmentId) is not null;
 
