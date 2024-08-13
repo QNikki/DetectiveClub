@@ -120,7 +120,7 @@ internal class QuestionService(
 
         var questionsByType = GetQuestionsByType(questionTypeId).Result.ToList();
         var envQuestions = environmentQuestions.GetAll().ToList();
-        
+
         //Delete question environment data 
         foreach (var envQuestion in envQuestions)
         {
@@ -129,7 +129,7 @@ internal class QuestionService(
                 environmentQuestions.Delete(envQuestion);
             }
         }
-        
+
         //Delete question  data 
         foreach (var question in questionsByType)
         {
@@ -160,14 +160,35 @@ internal class QuestionService(
     }
 
     public IEnumerable<QuestionType> GetQuestionTypes() => questionTypes.GetAll();
+
     public StatusResult<ServiceStatus, int> AddEnvironmentToQuestion(int questionId, int environmentId)
     {
-        throw new NotImplementedException();
+        if (!IsEnvironmentValid(environmentId))
+        {
+            return new StatusResult<ServiceStatus, int>(ServiceStatus.WrongEnvironment, -1);
+        }
+        else if (!IsQuestionValid(questionId))
+        {
+            return new StatusResult<ServiceStatus, int>(ServiceStatus.NotFound, -1);
+        }
+
+        var index = environmentQuestions.Add(new EnvironmentQuestion
+            { EnvironmentId = environmentId, QuestionId = questionId });
+        
+        return new StatusResult<ServiceStatus, int>(ServiceStatus.Success, index);
     }
 
     public ServiceStatus RemoveEnvironmentFromQuestion(int questionId, int environmentId)
     {
-        throw new NotImplementedException();
+        var maybeEnvironmentQuestion = environmentQuestions.GetAll()
+            .FirstOrDefault(envQ => 
+                envQ.QuestionId == questionId && envQ.EnvironmentId == environmentId);
+
+        if (maybeEnvironmentQuestion == default) { return ServiceStatus.NotFound; }
+        
+        environmentQuestions.Delete(maybeEnvironmentQuestion);
+        return ServiceStatus.Success;
+
     }
 
     private StatusResult<bool, ServiceStatus> ValidateQuestion(Question target)
@@ -181,4 +202,6 @@ internal class QuestionService(
     private bool IsEnvironmentValid(int environmentId) => environments.GetById(environmentId) is not null;
 
     private bool IsTypeValid(int typeId) => questionTypes.GetById(typeId) is not null;
+
+    private bool IsQuestionValid(int questionId) => questions.GetById(questionId) is not null;
 }

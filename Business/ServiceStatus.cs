@@ -7,5 +7,5 @@ public enum ServiceStatus
     NotFound,
     WrongEnvironment,
     WrongType,
-    StillInUse,
+    IncorrectData,
 }

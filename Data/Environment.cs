@@ -1,8 +1,8 @@
 ﻿namespace DetectiveClub.Data;
 
-public class Environment : IEntity<int>
+public record Environment : IEntity<int>
 {
-    public int Id { get; set; }
+    public int Id { get; init; }
 
-    public string Name { get; set; }
+    public required string Name { get; set; }
 }

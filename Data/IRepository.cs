@@ -1,9 +1,9 @@
-﻿using System.Linq;
+﻿
 using System.Linq.Expressions;
 
 namespace DetectiveClub.Data;
 
-public interface IRepository<T> where T : class
+public interface IRepository<T>
 {
     IQueryable<T> GetAll();
 

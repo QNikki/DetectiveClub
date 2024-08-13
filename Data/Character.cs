@@ -1,8 +1,10 @@
 ﻿namespace DetectiveClub.Data;
 
-public record SecretType : IEntity<int>
+public record Character: IEntity<int>
 {
     public int Id { get; init; }
+    
+    public int UserId { get; set; }
 
     public required string Name { get; set; }
 }
