@@ -5,9 +5,8 @@ public record AnswerDto(int Id, int QuestionId, int CharacterId, string Content)
 public record EnvironmentDto(int Id, string Name);
 public record GameModeDto(int Id, string Name, int MaxCharacterCount);
 
-public record GuessDto(int Id, int AnswerId , int CharacterId,  int SecretId);
-
 public record QuestionDto(int Id, int TypeId , string Content);
+
 public record QuestionTypeDto(int Id, string Name);
 
 public record SecretDto(int Id,int TypeId, int EnvironmentId, string Сontent);
@@ -24,5 +23,7 @@ public enum GuessType
     Answer,
     Character,
 }
+
+public record GuessDto(int Id, GuessType Type, int CharacterId, int BasisId,  int SecretId);
 
 

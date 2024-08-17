@@ -8,8 +8,7 @@ namespace DetectiveClub.Business;
 internal class EnvironmentService(
     IRepository<Environment> environments,
     IRepository<EnvironmentQuestion> environmentQuestions,
-    IRepository<Question> questions,
-    IRepository<Secret> secrets) : IEnvironmentService
+    IRepository<Question> questions) : IEnvironmentService
 {
     public StatusResult<ServiceStatus, int> CreateEnvironment(EnvironmentDto environmentDto)
     {
@@ -38,12 +37,6 @@ internal class EnvironmentService(
         foreach (var environmentQuestion in environmentQuestionsToDelete)
         {
             environmentQuestions.Delete(environmentQuestion);
-        }
-
-        var secretsToDelete = secrets.GetList(x => x.EnvironmentId == environmentId).ToList();
-        foreach (var secret in secretsToDelete)
-        {
-            secrets.Delete(secret);
         }
 
         environments.Delete(environmentEntity);

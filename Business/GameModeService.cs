@@ -31,18 +31,18 @@ internal class GameModeService(
             return ServiceStatus.NotFound;
         }
 
-        var questionTypes = GetQuestionTypes(gameModeId);
-        foreach (var questionType in questionTypes)
+        var questionTypeDtos = GetQuestionTypes(gameModeId);
+        foreach (var questionType in questionTypeDtos)
         {
             RemoveQuestionFromGameMode(gameModeId, questionType);
         }
 
-        var secretTypes = GetSecretTypes(gameModeId);
-        foreach (var secretType in secretTypes)
+        var secretTypeDtos = GetSecretTypes(gameModeId);
+        foreach (var secretType in secretTypeDtos)
         {
             RemoveSecretFromGameMode(gameModeId, secretType);
         }
-
+        
         gameModes.Delete(gameMode);
         return ServiceStatus.Success;
     }

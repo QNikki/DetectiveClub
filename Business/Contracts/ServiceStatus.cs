@@ -9,4 +9,5 @@ public enum ServiceStatus
     WrongEnvironment,
     WrongType,
     IncorrectData,
+    WrongBasis,
 }
