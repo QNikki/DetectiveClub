@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using DetectiveClub.Data;
+using DetectiveClub.Business.Contracts;
 
 namespace DetectiveClub.Business;
 

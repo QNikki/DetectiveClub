@@ -1,6 +1,6 @@
 ﻿namespace DetectiveClub.Data;
 
-public record GameModeType: ITypeEntity<int, int>
+public abstract record GameModeType: IEntityWithType<int, int>
 {
     public int Id { get; init; }
 

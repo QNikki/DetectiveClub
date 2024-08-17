@@ -1,4 +1,5 @@
-﻿namespace DetectiveClub.Business;
+﻿
+namespace DetectiveClub.Business.Contracts;
 
 public enum ServiceStatus
 {

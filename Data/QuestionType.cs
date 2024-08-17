@@ -1,8 +1,5 @@
 ﻿namespace DetectiveClub.Data;
 
-public record QuestionType : IEntity<int>
+public record QuestionType : EntityType<int>
 {
-    public int Id { get; init; }
-
-    public required string Name { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿namespace DetectiveClub.Business;
+﻿namespace DetectiveClub.Business.Contracts;
 
 public record AnswerDto(int Id, int QuestionId, int CharacterId, string Content);
 
@@ -17,5 +17,12 @@ public record SecretTypeDto(int Id, string Name);
 public record SessionDto(int Id, int GameModeId, int EnvironmentId, bool IsEnabledGuessScore, int HostId);
 
 public record CharacterDto(int Id, int UserId, string Name);
+
+public enum GuessType
+{
+    // guess to answer 
+    Answer,
+    Character,
+}
 
 

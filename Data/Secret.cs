@@ -1,6 +1,6 @@
 ﻿namespace DetectiveClub.Data;
 
-public record Secret : ITypeEntity<int, int>
+public record Secret : IEntityWithType<int, int>
 {
     public int Id { get; init; }
     

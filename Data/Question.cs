@@ -1,6 +1,6 @@
 ﻿namespace DetectiveClub.Data;
 
-public record Question: ITypeEntity<int, int>
+public record Question: IEntityWithType<int, int>
 {
     public int Id { get; init; }
 

@@ -1,15 +1,15 @@
-﻿using DetectiveClub.Data;
-using Environment = DetectiveClub.Data.Environment;
+﻿using AutoMapper;
+using DetectiveClub.Data;
+using DetectiveClub.Business.Contracts;
 
 namespace DetectiveClub.Business;
 
 internal class QuestionService(
     IRepository<Question> questions,
-    IRepository<Environment> environments,
     IRepository<EnvironmentQuestion> environmentQuestions,
     IRepository<QuestionType> questionTypes) : IQuestionService
 {
-    public StatusResult<ServiceStatus, int> AddQuestion(Question newQuestion)
+    public StatusResult<ServiceStatus, int> AddQuestion(QuestionDto newQuestion)
     {
         var isValid = ValidateQuestion(newQuestion);
         if (!isValid.Status)
@@ -18,15 +18,19 @@ internal class QuestionService(
         }
 
         var alreadyExist = questions.GetAll()
-            .Any(secret => secret.TypeId == newQuestion.TypeId && secret.Сontent == newQuestion.Сontent);
+            .Any(question => question.TypeId == newQuestion.TypeId && question.Сontent == newQuestion.Content);
 
         if (alreadyExist)
         {
             return new StatusResult<ServiceStatus, int>(ServiceStatus.AlreadyExist, -1);
         }
 
-        var secretId = questions.Add(newQuestion);
-        return new StatusResult<ServiceStatus, int>(ServiceStatus.Success, secretId);
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<QuestionDto, Question>())
+            .CreateMapper();
+
+        var question = mapper.Map<Question>(newQuestion);
+        var questionId = questions.Add(question);
+        return new StatusResult<ServiceStatus, int>(ServiceStatus.Success, questionId);
     }
 
     public ServiceStatus RemoveQuestion(int questionId)
@@ -49,7 +53,7 @@ internal class QuestionService(
         return ServiceStatus.Success;
     }
 
-    public ServiceStatus EditQuestion(Question toEditQuestion)
+    public ServiceStatus EditQuestion(QuestionDto toEditQuestion)
     {
         var question = questions.GetById(toEditQuestion.Id);
         if (question == null)
@@ -67,36 +71,37 @@ internal class QuestionService(
         return ServiceStatus.Success;
     }
 
-    public Question? GetQuestion(int questionId) => questions.GetById(questionId);
+    public QuestionDto? GetQuestion(int questionId)
+    {
+        var question = questions.GetById(questionId);
+        if (question is null)
+        {
+            return null;
+        }
 
-    public StatusResult<ServiceStatus, IEnumerable<Question>> GetQuestionsByType(int typeId)
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<Question, QuestionDto>())
+            .CreateMapper();
+
+        return mapper.Map<QuestionDto>(question);
+    }
+
+    public StatusResult<ServiceStatus, IEnumerable<QuestionDto>> GetQuestionsByType(int typeId)
     {
         if (!IsTypeValid(typeId))
         {
-            return new StatusResult<ServiceStatus, IEnumerable<Question>>(ServiceStatus.WrongType, default);
+            return new StatusResult<ServiceStatus, IEnumerable<QuestionDto>>(ServiceStatus.WrongType,
+                new List<QuestionDto>());
         }
 
-        return new StatusResult<ServiceStatus, IEnumerable<Question>>(ServiceStatus.Success,
-            questions.GetList(question => question.TypeId == typeId));
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<List<Question>, List<QuestionDto>>())
+            .CreateMapper();
+
+        var questionsByType = questions.GetList(question => question.TypeId == typeId);
+        var mappedQuestionsByType = mapper.Map<List<QuestionDto>>(questionsByType);
+        return new StatusResult<ServiceStatus, IEnumerable<QuestionDto>>(ServiceStatus.Success, mappedQuestionsByType);
     }
 
-    public StatusResult<ServiceStatus, IEnumerable<Question>> GetQuestionByEnvironment(int environmentId)
-    {
-        if (!IsEnvironmentValid(environmentId))
-        {
-            return new StatusResult<ServiceStatus, IEnumerable<Question>>(ServiceStatus.WrongEnvironment, default);
-        }
-
-        var environmentQuestion =
-            environmentQuestions.GetList(envQuestion => envQuestion.EnvironmentId == environmentId)
-                .Select(x => x.QuestionId)
-                .ToList();
-
-        return new StatusResult<ServiceStatus, IEnumerable<Question>>(ServiceStatus.WrongEnvironment,
-            questions.GetList(question => environmentQuestion.Contains(question.Id)));
-    }
-
-    public StatusResult<ServiceStatus, int> AddQuestionType(QuestionType newQuestionType)
+    public StatusResult<ServiceStatus, int> AddQuestionType(QuestionTypeDto newQuestionType)
     {
         var alreadyExist = questionTypes.GetAll()
             .Any(questionType => questionType.Name == newQuestionType.Name);
@@ -106,7 +111,11 @@ internal class QuestionService(
             return new StatusResult<ServiceStatus, int>(ServiceStatus.AlreadyExist, -1);
         }
 
-        var secretId = questionTypes.Add(newQuestionType);
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<QuestionTypeDto, QuestionType>())
+            .CreateMapper();
+
+        var questionType = mapper.Map<QuestionType>(newQuestionType);
+        var secretId = questionTypes.Add(questionType);
         return new StatusResult<ServiceStatus, int>(ServiceStatus.Success, secretId);
     }
 
@@ -122,16 +131,17 @@ internal class QuestionService(
         var envQuestions = environmentQuestions.GetAll().ToList();
 
         //Delete question environment data 
-        foreach (var envQuestion in envQuestions)
+        foreach (var envQuestion in envQuestions.Where(envQuestion => questionsByType.Any(x => x.Id == envQuestion.Id)))
         {
-            if (questionsByType.Any(x => x.Id == envQuestion.Id))
-            {
-                environmentQuestions.Delete(envQuestion);
-            }
+            environmentQuestions.Delete(envQuestion);
         }
 
         //Delete question  data 
-        foreach (var question in questionsByType)
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<List<QuestionDto>, List<Question>>())
+            .CreateMapper();
+
+        var mappedQuestionsByType = mapper.Map<List<Question>>(questionsByType);
+        foreach (var question in mappedQuestionsByType)
         {
             questions.Delete(question);
         }
@@ -140,7 +150,7 @@ internal class QuestionService(
         return ServiceStatus.Success;
     }
 
-    public ServiceStatus EditQuestionType(QuestionType toEditQuestionType)
+    public ServiceStatus EditQuestionType(QuestionTypeDto toEditQuestionType)
     {
         var questionType = questionTypes.GetById(toEditQuestionType.Id);
         if (questionType == null)
@@ -152,56 +162,33 @@ internal class QuestionService(
         return ServiceStatus.Success;
     }
 
-    public StatusResult<ServiceStatus, QuestionType> GetQuestionType(int questionTypeId)
+    public StatusResult<ServiceStatus, QuestionTypeDto> GetQuestionType(int questionTypeId)
     {
         var questionType = questionTypes.GetById(questionTypeId);
-        var status = questionType is null ? ServiceStatus.NotFound : ServiceStatus.Success;
-        return new(status, questionType);
-    }
-
-    public IEnumerable<QuestionType> GetQuestionTypes() => questionTypes.GetAll();
-
-    public StatusResult<ServiceStatus, int> AddEnvironmentToQuestion(int questionId, int environmentId)
-    {
-        if (!IsEnvironmentValid(environmentId))
+        if (questionType == null)
         {
-            return new StatusResult<ServiceStatus, int>(ServiceStatus.WrongEnvironment, -1);
-        }
-        else if (!IsQuestionValid(questionId))
-        {
-            return new StatusResult<ServiceStatus, int>(ServiceStatus.NotFound, -1);
+            return new(ServiceStatus.NotFound, new QuestionTypeDto(-1, ""));
         }
 
-        var index = environmentQuestions.Add(new EnvironmentQuestion
-            { EnvironmentId = environmentId, QuestionId = questionId });
-        
-        return new StatusResult<ServiceStatus, int>(ServiceStatus.Success, index);
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<QuestionType, QuestionTypeDto>()).CreateMapper();
+        return new(ServiceStatus.Success, mapper.Map<QuestionTypeDto>(questionType));
     }
 
-    public ServiceStatus RemoveEnvironmentFromQuestion(int questionId, int environmentId)
+    public IEnumerable<QuestionTypeDto> GetQuestionTypes()
     {
-        var maybeEnvironmentQuestion = environmentQuestions.GetAll()
-            .FirstOrDefault(envQ => 
-                envQ.QuestionId == questionId && envQ.EnvironmentId == environmentId);
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<List<QuestionType>, List<QuestionTypeDto>>())
+            .CreateMapper();
 
-        if (maybeEnvironmentQuestion == default) { return ServiceStatus.NotFound; }
-        
-        environmentQuestions.Delete(maybeEnvironmentQuestion);
-        return ServiceStatus.Success;
-
+        return mapper.Map<List<QuestionTypeDto>>(questionTypes.GetAll());
     }
 
-    private StatusResult<bool, ServiceStatus> ValidateQuestion(Question target)
+
+    private StatusResult<bool, ServiceStatus> ValidateQuestion(QuestionDto target)
     {
         return IsTypeValid(target.TypeId)
             ? new StatusResult<bool, ServiceStatus>(true, ServiceStatus.Success)
             : new StatusResult<bool, ServiceStatus>(false, ServiceStatus.WrongType);
     }
 
-
-    private bool IsEnvironmentValid(int environmentId) => environments.GetById(environmentId) is not null;
-
     private bool IsTypeValid(int typeId) => questionTypes.GetById(typeId) is not null;
-
-    private bool IsQuestionValid(int questionId) => questions.GetById(questionId) is not null;
 }
